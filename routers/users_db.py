@@ -14,7 +14,7 @@ router = APIRouter(prefix="/userdb",
 
 # GET
 
-@router.get("/")
+@router.get("/", response_model= list[User])
 async def users():
     return users_schema(db_client.users.find())
 
@@ -24,7 +24,7 @@ async def user(id: str):
     return search_user("_id", ObjectId(id))
     
 # Llamada a un usuario por id - Query
-@router.get("/")
+@router.get("/search")
 async def user(id: str):
     return search_user("_id", ObjectId(id))
     
