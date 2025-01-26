@@ -5,3 +5,4 @@ passlib
 bcrypt
 pymongo
 python-multipart
+boto3
