@@ -6,6 +6,7 @@ from db.schemas.product import product_schema, products_schema
 from bson import ObjectId
 
 
+
 router = APIRouter(prefix="/productdb",
                         tags=["productdb"],
                         responses={status.HTTP_404_NOT_FOUND: {"message": "Not found"}})
@@ -42,6 +43,7 @@ async def product(id: str):
 # POST
 @router.post("/", response_model= Product, status_code= status.HTTP_201_CREATED)
 async def create_product(product: Product):
+    
     if type(search_product("name", product.name)) == Product:
         raise HTTPException(
         status.HTTP_404_NOT_FOUND, detail="Product already exists")
@@ -49,6 +51,8 @@ async def create_product(product: Product):
     product_dict = product.model_dump()
     product_dict.pop("id", None)
 
+
+    # Insertar el producto en la base de datos
     id = db_client.products.insert_one(product_dict).inserted_id
 
     new_product = product_schema(db_client.products.find_one({"_id": id}))
@@ -62,6 +66,7 @@ async def update_product(product: Product):
     
     product_dict = product.model_dump()
     product_dict.pop("id", None)
+
 
     try:
         db_client.products.find_one_and_replace({"_id": ObjectId(product.id)}, product_dict)

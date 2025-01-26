@@ -4,7 +4,8 @@
 
 
 from fastapi import FastAPI
-from routers import users, products, basic_auth_users, jwt_auth_users, users_db, products_db
+#from Backend.FastAPI.routers import image_product_db
+from routers import users, products, basic_auth_users, jwt_auth_users, users_db, products_db, image_product_db, image_db
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
@@ -17,6 +18,8 @@ app.include_router(basic_auth_users.router)
 app.include_router(jwt_auth_users.router)
 app.include_router(users_db.router)
 app.include_router(products_db.router)
+app.include_router(image_product_db.router)
+app.include_router(image_db.router)
 
 # Url local: http://127.0.0.1:8000
 
