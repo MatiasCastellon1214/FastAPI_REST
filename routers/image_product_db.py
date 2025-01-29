@@ -40,7 +40,12 @@ async def image_product(id: str):
 
 # POST
 @router.post("/", response_model= ImageProduct, status_code= status.HTTP_201_CREATED)
-async def create_image_product(file: UploadFile = File(...)):
+async def create_image_product(file: UploadFile = File(...),
+                                product_id: str = None):
+    if not product_id:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, 
+            detail="Product ID is required")
     
     if type(image_search_product("image_product", file.filename)) == ImageProduct:
         raise HTTPException(
@@ -50,7 +55,10 @@ async def create_image_product(file: UploadFile = File(...)):
     # Subir la imagen a AWS S3
     s3_url = upload_image_product_to_aws(file.file, file.filename, file.content_type)
 
-    image_product_dict = {"image_product": s3_url}
+    image_product_dict = {
+        "image_product": s3_url,
+        "product_id": product_id
+    }
 
     if not isinstance(s3_url, str) and 'error' in s3_url:
         raise HTTPException(
@@ -63,6 +71,11 @@ async def create_image_product(file: UploadFile = File(...)):
     
     # Insertar la imagen del producto en la base de datos
     id = db_client.image_products.insert_one(image_product_dict).inserted_id
+
+    # Actualizar la lista de imágenes del producto
+    db_client.products.update_one(
+        {"_id": ObjectId(product_id)}, 
+        {"$push": {"image": id}})
 
     new_image_product = image_product_schema(db_client.image_products.find_one({"_id": id}))
 
@@ -116,12 +129,37 @@ async def update_image_product(id: str, file: UploadFile = File(...)):
 async def delete_image_product(id: str):
 
     try:
-        object_id = ObjectId(id)
+        # Buscar la imagen de producto en la base de datos
+        image = db_client.image_products.find_one({"_id": ObjectId(id)})
+        if not image:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, 
+                detail="Image of Product not found")
+
+        #object_id = ObjectId(id)
+
+        # Eliminar la referencia de la imagen en el producto
+        if "product_id" in image:
+            db_client.products.update_one(
+                {"_id": ObjectId(image["product_id"])}, 
+                {"$pull": {"image": ObjectId(id)}}
+            )
+
+        # Eliminar la imagen
+        if "image_product" in image:
+            delete_image_product_from_aws(image["image_product"])
+
+        # Eliminar la imagen de producto de la base de datos
+        db_client.image_products.delete_one({"_id": ObjectId(id)})    
+
+        return {"message": "Image of Product deleted successfully"}
+
     except Exception as e:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, 
             detail="Invalid ID")
     
+    '''
     # Buscar la imagen de producto en la base de datos
     found = db_client.image_products.find_one({"_id": object_id})
     
@@ -145,4 +183,4 @@ async def delete_image_product(id: str):
     found = db_client.image_products.find_one_and_delete({"_id": object_id})
     
     return {"message": "Image of Product deleted successfully"}
-    
+    '''

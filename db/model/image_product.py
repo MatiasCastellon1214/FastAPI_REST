@@ -3,5 +3,6 @@ from typing import Optional
 
 class ImageProduct(BaseModel):
     id: Optional[str] = None
-    image: str
+    image_product: str
+    product_id: str
     
